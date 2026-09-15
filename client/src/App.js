@@ -1,154 +1,51 @@
-/* =========================================================
-   PAGE TRANSITION WRAPPER
-   ========================================================= */
-.page {
-  animation: fadeUp 450ms cubic-bezier(0.4, 0, 0.2, 1) both;
-  min-height: 60vh;
-}
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import Navbar from "./components/Navbar";
+import PrivateRoute from "./components/PrivateRoute";
+import useMouseFlow from "./hooks/useMouseFlow";
 
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ProductDetails from "./pages/ProductDetails";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import MyOrders from "./pages/MyOrders";
+import Wallet from "./pages/Wallet";
 
-/* =========================================================
-   AMBIENT BACKGROUND — floating leaves & crops
-   ========================================================= */
-.ambient {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-}
+import FarmerDashboard from "./pages/farmer/FarmerDashboard";
+import AddProduct from "./pages/farmer/AddProduct";
+import EditProduct from "./pages/farmer/EditProduct";
+import FarmerOrders from "./pages/farmer/FarmerOrders";
 
-.ambient__leaf {
-  position: absolute;
-  font-size: 2rem;
-  opacity: 0.18;
-  filter: blur(0.4px) saturate(1.2);
-  animation: floatLeaf 18s ease-in-out infinite;
-  user-select: none;
-}
+function App() {
+  useMouseFlow();
 
-.ambient__leaf--1 {
-  top: 12%;
-  left: 6%;
-  font-size: 2.4rem;
-  animation-duration: 22s;
-  animation-delay: -2s;
-}
-.ambient__leaf--2 {
-  top: 30%;
-  right: 8%;
-  font-size: 2rem;
-  animation-duration: 26s;
-  animation-delay: -6s;
-}
-.ambient__leaf--3 {
-  bottom: 22%;
-  left: 12%;
-  font-size: 1.8rem;
-  animation-duration: 20s;
-  animation-delay: -10s;
-}
-.ambient__leaf--4 {
-  bottom: 10%;
-  right: 14%;
-  font-size: 2.2rem;
-  animation-duration: 24s;
-  animation-delay: -4s;
-}
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Navbar />
+        <div className="container">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/products/:id" element={<ProductDetails />} />
 
-@keyframes floatLeaf {
-  0% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate3d(20px, -18px, 0) rotate(8deg);
-  }
-  50% {
-    transform: translate3d(-10px, -30px, 0) rotate(-6deg);
-  }
-  75% {
-    transform: translate3d(14px, -12px, 0) rotate(4deg);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-}
+            <Route path="/cart" element={<PrivateRoute role="buyer"><Cart /></PrivateRoute>} />
+            <Route path="/checkout" element={<PrivateRoute role="buyer"><Checkout /></PrivateRoute>} />
+            <Route path="/my-orders" element={<PrivateRoute role="buyer"><MyOrders /></PrivateRoute>} />
+            <Route path="/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
 
-/* On small screens, reduce leaf clutter */
-@media (max-width: 600px) {
-  .ambient__leaf { opacity: 0.10; font-size: 1.4rem; }
-  .ambient__leaf--3 { display: none; }
-}
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-.footer {
-  margin-top: var(--space-2xl);
-  padding: var(--space-lg) var(--space-md);
-  text-align: center;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    rgba(58, 125, 68, 0.06) 40%,
-    rgba(232, 163, 61, 0.08)
+            <Route path="/farmer" element={<PrivateRoute role="farmer"><FarmerDashboard /></PrivateRoute>} />
+            <Route path="/farmer/add-product" element={<PrivateRoute role="farmer"><AddProduct /></PrivateRoute>} />
+            <Route path="/farmer/edit-product/:id" element={<PrivateRoute role="farmer"><EditProduct /></PrivateRoute>} />
+            <Route path="/farmer/orders" element={<PrivateRoute role="farmer"><FarmerOrders /></PrivateRoute>} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
-  color: var(--color-text-soft);
-  font-size: 0.9rem;
-  border-top: 1px solid var(--color-border);
-  position: relative;
 }
 
-.footer::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    var(--color-primary),
-    var(--color-accent),
-    var(--color-earth-light),
-    var(--color-primary)
-  );
-  background-size: 300% 100%;
-  animation: ribbon 8s linear infinite;
-  border-radius: var(--radius-pill);
-}
-
-.footer p { margin: 0; }
-
-.footer__leaf {
-  display: inline-block;
-  animation: sway 3s ease-in-out infinite;
-  transform-origin: bottom center;
-}
-
-/* =========================================================
-   FOCUSED / ACTIVE ROUTE HELPER (optional)
-   ========================================================= */
-.page:focus { outline: none; }
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
-@media (prefers-reduced-motion: reduce) {
-  .page,
-  .ambient__leaf,
-  .footer::before,
-  .footer__leaf {
-    animation: none !important;
-  }
-}
+export default App;
