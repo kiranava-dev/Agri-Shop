@@ -1,6 +1,6 @@
 /* =========================================================
-   FarmFresh — Farmer-friendly theme
-   Drop-in replacement. Same class names, better look.
+   FarmFresh — Farmer-friendly theme (v3)
+   Drop-in replacement + mouse-tracking "flow bars"
    ========================================================= */
 
 /* ===== Design tokens ===== */
@@ -68,7 +68,7 @@
   --radius-lg: 20px;
   --radius-pill: 999px;
 
-  /* shadows (green + brown tinted) */
+  /* shadows */
   --shadow-xs: 0 1px 2px rgba(58, 125, 68, 0.06);
   --shadow-sm: 0 1px 3px rgba(58, 125, 68, 0.08),
                0 1px 2px rgba(139, 94, 60, 0.06);
@@ -76,11 +76,14 @@
                0 2px 6px rgba(139, 94, 60, 0.08);
   --shadow-lg: 0 10px 28px rgba(42, 92, 50, 0.14),
                0 4px 10px rgba(139, 94, 60, 0.10);
+  --shadow-xl: 0 20px 48px rgba(31, 70, 38, 0.20),
+               0 8px 18px rgba(139, 94, 60, 0.14);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
   /* transitions */
   --transition-fast: 150ms ease;
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* typography */
@@ -101,20 +104,45 @@ body {
   line-height: 1.6;
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(circle at 10% 15%, rgba(106, 171, 111, 0.12), transparent 42%),
-    radial-gradient(circle at 90% 10%, rgba(232, 163, 61, 0.12), transparent 42%),
-    radial-gradient(circle at 50% 100%, rgba(139, 94, 60, 0.08), transparent 55%);
+    radial-gradient(circle at 10% 15%, rgba(106, 171, 111, 0.14), transparent 42%),
+    radial-gradient(circle at 90% 10%, rgba(232, 163, 61, 0.14), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(139, 94, 60, 0.10), transparent 55%);
   background-attachment: fixed;
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Animated "wind through crops" ambience */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(115deg,
+      transparent 0px,
+      rgba(58, 125, 68, 0.035) 40px,
+      transparent 80px),
+    repeating-linear-gradient(-115deg,
+      transparent 0px,
+      rgba(232, 163, 61, 0.03) 50px,
+      transparent 100px);
+  animation: drift 40s linear infinite;
+}
+
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-80px, -40px, 0); }
 }
 
 a {
   text-decoration: none;
   color: var(--color-primary);
   transition: color var(--transition-fast);
+  position: relative;
 }
 a:hover { color: var(--color-primary-dark); }
 
@@ -141,14 +169,91 @@ h3 { font-size: 1.25rem; }
   color: var(--color-earth-dark);
 }
 
-/* ===== Navbar ===== */
+/* =========================================================
+   MOUSE FLOW BARS — the shine that follows your cursor
+   Works on any element that has --mx / --my set by JS.
+   ========================================================= */
+
+.flow {
+  --mx: 50%;
+  --my: 50%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Radial spotlight that tracks the mouse */
+.flow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  background: radial-gradient(
+    320px circle at var(--mx) var(--my),
+    rgba(255, 255, 255, 0.55),
+    rgba(232, 163, 61, 0.18) 30%,
+    rgba(58, 125, 68, 0.10) 55%,
+    transparent 75%
+  );
+  transition: opacity var(--transition-base);
+}
+
+.flow:hover::before { opacity: 1; }
+
+/* Bottom "flow bar" — a gradient line that stretches from mouse x */
+.flow::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  transform: scaleX(0);
+  transform-origin: var(--mx, 50%) center;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-primary-light) 20%,
+    var(--color-accent) 50%,
+    var(--color-earth-light) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: flowShimmer 2.4s linear infinite;
+  transition: transform var(--transition-slow);
+  opacity: 0;
+}
+
+.flow:hover::after {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+@keyframes flowShimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Content sits above the flow layers */
+.flow > * { position: relative; z-index: 3; }
+
+/* =========================================================
+   NAVBAR — animated flow stripe under the bar
+   ========================================================= */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: linear-gradient(135deg,
-    var(--color-primary-dark) 0%,
-    var(--color-primary) 55%,
+    var(--color-primary-darker) 0%,
+    var(--color-primary-dark) 35%,
+    var(--color-primary) 75%,
     var(--color-primary-light) 100%);
   color: #fff;
   padding: var(--space-md) var(--space-lg);
@@ -156,7 +261,44 @@ h3 { font-size: 1.25rem; }
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 3px solid var(--color-accent);
+  overflow: hidden;
+}
+
+/* Soft glow that follows the mouse inside navbar */
+.navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    400px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.16),
+    transparent 60%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+.navbar:hover::before { opacity: 1; }
+
+/* Moving harvest ribbon across the bottom */
+.navbar::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    var(--color-primary),
+    var(--color-accent-light),
+    var(--color-accent),
+    var(--color-earth-light),
+    var(--color-primary));
+  background-size: 300% 100%;
+  animation: ribbon 6s linear infinite;
+}
+
+@keyframes ribbon {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 300% 0; }
 }
 
 .navbar .brand {
@@ -168,12 +310,22 @@ h3 { font-size: 1.25rem; }
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
+  position: relative;
+  z-index: 1;
 }
 
 .navbar .brand::before {
   content: "🌾";
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  animation: sway 4s ease-in-out infinite;
+  transform-origin: bottom center;
+  display: inline-block;
+}
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(6deg); }
 }
 
 .navbar a {
@@ -181,25 +333,49 @@ h3 { font-size: 1.25rem; }
   margin-left: var(--space-md);
   font-weight: 700;
   font-size: 0.92rem;
-  padding: var(--space-xs) 0;
+  padding: var(--space-xs) var(--space-sm);
   position: relative;
-  transition: color var(--transition-fast);
+  border-radius: var(--radius-pill);
+  transition: color var(--transition-fast),
+              background var(--transition-base);
+  z-index: 1;
+  overflow: hidden;
 }
 
+/* Individual link glow on hover */
+.navbar a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(232, 163, 61, 0.55),
+    transparent 70%
+  );
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity var(--transition-base);
+  z-index: -1;
+}
+.navbar a:hover::before { opacity: 1; }
+.navbar a:hover { color: #fff; }
+
+/* Underline flow bar */
 .navbar a::after {
   content: "";
   position: absolute;
-  left: 0;
-  bottom: -4px;
+  left: 50%;
+  bottom: 2px;
   height: 2px;
   width: 0;
-  background: var(--color-accent-light);
+  transform: translateX(-50%);
+  background: linear-gradient(90deg,
+    var(--color-accent-light),
+    var(--color-accent));
   border-radius: var(--radius-pill);
   transition: width var(--transition-base);
 }
-
-.navbar a:hover { color: #fff; }
-.navbar a:hover::after { width: 100%; }
+.navbar a:hover::after { width: 70%; }
 
 /* ===== Container ===== */
 .container {
@@ -208,7 +384,7 @@ h3 { font-size: 1.25rem; }
   padding: var(--space-lg);
 }
 
-/* ===== Card ===== */
+/* ===== Card with flow ===== */
 .card {
   position: relative;
   background: var(--color-surface-warm);
@@ -218,31 +394,62 @@ h3 { font-size: 1.25rem; }
   box-shadow: var(--shadow-sm);
   margin-bottom: var(--space-md);
   overflow: hidden;
+  isolation: isolate;
   transition: transform var(--transition-base),
               box-shadow var(--transition-base),
               border-color var(--transition-base);
 }
 
+/* Mouse spotlight */
 .card::before {
   content: "";
   position: absolute;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg,
-    var(--color-primary),
-    var(--color-accent),
-    var(--color-earth-light));
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
   opacity: 0;
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(232, 163, 61, 0.16),
+    rgba(106, 171, 111, 0.10) 35%,
+    transparent 70%
+  );
   transition: opacity var(--transition-base);
 }
 
+.card:hover::before { opacity: 1; }
+
+/* Animated top harvest bar — stretches from mouse x */
+.card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(90deg,
+    var(--color-primary-light),
+    var(--color-accent),
+    var(--color-earth-light));
+  background-size: 200% 100%;
+  animation: flowShimmer 3s linear infinite;
+  transform: scaleX(0);
+  transform-origin: var(--mx, 50%) center;
+  transition: transform var(--transition-slow);
+  z-index: 2;
+  border-radius: inherit;
+}
+
+.card:hover::after { transform: scaleX(1); }
+
 .card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
   border-color: var(--color-primary-pale);
 }
-.card:hover::before { opacity: 1; }
+
+.card > * { position: relative; z-index: 3; }
 
 /* ===== Grid ===== */
 .grid {
@@ -251,8 +458,9 @@ h3 { font-size: 1.25rem; }
   gap: var(--space-md);
 }
 
-/* ===== Buttons ===== */
+/* ===== Buttons with flow ===== */
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -274,26 +482,66 @@ h3 { font-size: 1.25rem; }
               box-shadow var(--transition-base),
               background var(--transition-base);
   white-space: nowrap;
+  overflow: hidden;
+  isolation: isolate;
 }
+
+/* Mouse spotlight inside button */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  background: radial-gradient(
+    160px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.55),
+    rgba(232, 163, 61, 0.35) 30%,
+    transparent 70%
+  );
+  transition: opacity var(--transition-fast);
+}
+.btn:hover::before { opacity: 1; }
+
+/* Bottom flow bar inside button */
+.btn::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 3px;
+  border-radius: inherit;
+  background: linear-gradient(90deg,
+    var(--color-accent-light),
+    var(--color-accent),
+    var(--color-earth-light));
+  background-size: 200% 100%;
+  animation: flowShimmer 1.8s linear infinite;
+  transform: scaleX(0);
+  transform-origin: var(--mx, 50%) center;
+  transition: transform var(--transition-base);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.btn:hover::after { transform: scaleX(1); }
+
+.btn > * { position: relative; z-index: 3; }
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), var(--shadow-inset);
+  box-shadow: var(--shadow-lg), var(--shadow-inset);
   background: linear-gradient(135deg,
     var(--color-primary-light),
     var(--color-primary));
 }
 
-.btn:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-xs);
-}
-
+.btn:active { transform: translateY(0); }
 .btn:focus-visible {
   outline: 3px solid var(--color-accent);
   outline-offset: 3px;
 }
-
 .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -306,6 +554,12 @@ h3 { font-size: 1.25rem; }
     var(--color-earth-light));
   color: var(--color-earth-dark);
 }
+.btn.secondary::after {
+  background: linear-gradient(90deg,
+    var(--color-earth-light),
+    var(--color-accent),
+    var(--color-earth-light));
+}
 .btn.secondary:hover {
   background: linear-gradient(135deg,
     var(--color-earth-light),
@@ -314,9 +568,13 @@ h3 { font-size: 1.25rem; }
 }
 
 .btn.danger {
-  background: linear-gradient(135deg,
-    #d0503f,
-    var(--color-danger));
+  background: linear-gradient(135deg, #d0503f, var(--color-danger));
+}
+.btn.danger::after {
+  background: linear-gradient(90deg,
+    #f0937f,
+    #ffffff 50%,
+    #f0937f);
 }
 .btn.danger:hover {
   background: linear-gradient(135deg,
@@ -324,7 +582,7 @@ h3 { font-size: 1.25rem; }
     #8f2c1f);
 }
 
-/* ===== Form groups ===== */
+/* ===== Form groups — mouse glow on inputs ===== */
 .form-group { margin-bottom: var(--space-md); }
 
 .form-group label {
@@ -349,22 +607,24 @@ h3 { font-size: 1.25rem; }
   background: var(--color-surface);
   transition: border-color var(--transition-fast),
               box-shadow var(--transition-fast),
-              background var(--transition-fast);
+              background var(--transition-fast),
+              transform var(--transition-fast);
 }
 
 .form-group input:hover,
 .form-group select:hover,
 .form-group textarea:hover {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 4px rgba(106, 171, 111, 0.10);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary-light);
+  border-color: var(--color-primary);
   background: var(--color-surface-green);
-  box-shadow: 0 0 0 4px rgba(106, 171, 111, 0.18);
+  box-shadow: 0 0 0 5px rgba(232, 163, 61, 0.20);
 }
 
 .form-group input::placeholder,
@@ -378,8 +638,9 @@ h3 { font-size: 1.25rem; }
   line-height: 1.5;
 }
 
-/* ===== Badges ===== */
+/* ===== Badges with pulse ===== */
 .badge {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
@@ -393,7 +654,10 @@ h3 { font-size: 1.25rem; }
   color: var(--color-text-soft);
   border: 1px solid transparent;
   line-height: 1.4;
+  transition: transform var(--transition-bounce);
 }
+
+.badge:hover { transform: translateY(-1px) scale(1.03); }
 
 .badge::before {
   content: "";
@@ -401,8 +665,14 @@ h3 { font-size: 1.25rem; }
   height: 7px;
   border-radius: 50%;
   background: currentColor;
-  opacity: 0.85;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45);
+  opacity: 0.9;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.05); }
 }
 
 .badge.placed {
@@ -436,6 +706,7 @@ h3 { font-size: 1.25rem; }
   font-weight: 600;
   font-size: 0.92rem;
   line-height: 1.5;
+  overflow: hidden;
 }
 
 .error {
@@ -450,6 +721,12 @@ h3 { font-size: 1.25rem; }
   top: 50%;
   transform: translateY(-50%);
   font-size: 1.1rem;
+  animation: pulseWarn 1.6s ease-in-out infinite;
+}
+
+@keyframes pulseWarn {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50%      { transform: translateY(-50%) scale(1.12); }
 }
 
 .success {
@@ -465,6 +742,7 @@ h3 { font-size: 1.25rem; }
   transform: translateY(-50%);
   font-size: 1rem;
   font-weight: 900;
+  animation: pulseWarn 1.6s ease-in-out infinite;
 }
 
 /* ===== Product image ===== */
@@ -479,13 +757,16 @@ h3 { font-size: 1.25rem; }
       var(--color-earth-pale));
   margin-bottom: var(--space-sm);
   border: 1px solid var(--color-border);
-  transition: transform var(--transition-base),
-              box-shadow var(--transition-base);
+  transition: transform var(--transition-slow),
+              box-shadow var(--transition-slow),
+              filter var(--transition-slow);
+  filter: saturate(1.05);
 }
 
 .card:hover .product-img {
-  transform: scale(1.02);
-  box-shadow: var(--shadow-md);
+  transform: scale(1.04) rotate(-0.5deg);
+  box-shadow: var(--shadow-lg);
+  filter: saturate(1.2) brightness(1.03);
 }
 
 /* ===== Scrollbar ===== */
@@ -511,7 +792,7 @@ h3 { font-size: 1.25rem; }
     --space-xl: 28px;
   }
   .navbar { padding: var(--space-sm) var(--space-md); }
-  .navbar a { margin-left: var(--space-sm); font-size: 0.85rem; }
+  .navbar a { margin-left: var(--space-xs); padding: var(--space-2xs) var(--space-xs); }
   .navbar .brand { font-size: 1.15rem; }
   .container { padding: var(--space-md); }
   .card { padding: var(--space-md); border-radius: var(--radius-md); }
@@ -520,20 +801,23 @@ h3 { font-size: 1.25rem; }
 @media (max-width: 480px) {
   .grid { grid-template-columns: 1fr; }
   .navbar { flex-wrap: wrap; gap: var(--space-sm); }
+  .navbar a { margin-left: 0; }
 }
 
 /* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  body::before { display: none; }
 }
 
 /* ===== Print ===== */
 @media print {
   body { background: #fff; color: #000; }
-  .navbar, .btn { display: none !important; }
+  body::before, .navbar, .btn { display: none !important; }
   .card { box-shadow: none; border: 1px solid #ccc; }
 }
